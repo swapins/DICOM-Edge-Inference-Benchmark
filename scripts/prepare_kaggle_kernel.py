@@ -78,7 +78,7 @@ print('Bundle SHA256:', expected)
     def set_source(cell: dict, new_content: str) -> None:
         cell['source'] = new_content.splitlines(keepends=True)
     set_source(notebook['cells'][1],
-        f'PROFILE = {profile!r}  # Change locally and regenerate to switch pilot/full\n'
+        f'PROFILE = {profile!r}  # Change locally and regenerate to switch profiles\n'
         "RUN_PACKAGE_TESTS = True\n"
         "HIGH_DICOM_PIN = 'd42f664006a9cd2194eda0bf5b1cf0fa2fb0188e'\n"
     )
@@ -98,7 +98,7 @@ print('Bundle SHA256:', expected)
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--owner', required=True, help='Your Kaggle username/slug; NOT your email or token')
-    parser.add_argument('--profile', choices=('pilot', 'full', 'validation2'), default='pilot')
+    parser.add_argument('--profile', choices=('pilot', 'full', 'validation2', 'exp002_smoke', 'exp002'), default='pilot')
     parser.add_argument('--output-dir', type=Path, default=Path('kaggle'))
     parser.add_argument('--private', action='store_true', default=True)
     args = parser.parse_args(argv)

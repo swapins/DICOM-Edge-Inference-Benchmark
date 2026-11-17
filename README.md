@@ -12,6 +12,13 @@
 
 **Affiliation:** Provenant AI Labs Pte. Ltd., Singapore
 
+## MEDI AI+ experiment index
+
+- [MEDI-AI-EXP-001 — Selective DICOM Decoding](experiments/EXP_001/README.md) — Completed Kaggle validation
+- [MEDI-AI-EXP-002 — Hardware-Aware Medical Imaging Inference Profiling](experiments/EXP_002/README.md) — In progress
+
+EXP-002 requirements, protocol, and results record: [requirements](docs/MEDI_AI_EXP_002_REQUIREMENTS.md), [protocol](docs/MEDI_AI_EXP_002_PROTOCOL.md), and [results](docs/MEDI_AI_EXP_002_RESULTS.md).
+
 This repository contains a reproducible research experiment within the MEDI AI+ engineering programme at Provenant AI Labs. It investigates whether selective DICOM frame decoding improves end-to-end image ingestion and downstream CPU/CUDA inference performance.
 
 The benchmark evaluates repeated decoding, selective decoding, and bounded prefetching using synthetic medical imaging data. It is research-only and is not a clinical diagnostic system.
