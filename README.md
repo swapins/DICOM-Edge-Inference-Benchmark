@@ -1,125 +1,24 @@
 # DICOM Edge Inference Benchmark
 
-**Separate research prototype** for measuring the effect of selective DICOM frame decoding on CPU- and CUDA-based inference pipelines. This is **not** part of the upstream [highdicom PR #520](https://github.com/ImagingDataCommons/highdicom/pull/520), and introduces **no upstream code changes**.
+This repository is an independent research prototype for measuring selective DICOM frame decoding in CPU and CUDA inference pipelines. It is not part of [highdicom PR #520](https://github.com/ImagingDataCommons/highdicom/pull/520), and it does not modify the upstream highdicom repository.
 
-> **Research-only.** The model is an **untrained synthetic CNN**, not a medical diagnostic model. Never put real patient DICOM files in this repository. The generated DICOM inputs are synthetic and do not represent clinical imagery.
+> Research-only software. The benchmark uses an untrained synthetic CNN and synthetic DICOM inputs. It is not a medical diagnostic system. Do not place patient data, credentials, or other sensitive material in this repository.
 
-## Research question
+## What is measured
 
-Does selective CPU-side decoding, with and without bounded prefetch, improve end-to-end inference throughput and resource usage on edge hardware relative to repeated single-frame retrieval?
+The benchmark compares three strategies using the same selected frames, decoder, batch size, and model:
 
-The benchmark compares three implementations using the **same frame indices, decoding backend, batch size, and model**:
+- **A - Repeated access:** retrieve each selected frame individually with `read_frame(i)`.
+- **B - Selective decoding:** retrieve selected frames in bounded `read_frames(indices=batch)` chunks.
+- **C - Selective decoding with prefetch:** use the same chunks with a bounded producer queue while inference processes earlier chunks.
 
-- **A - Repeated access**: `ImageFileReader.read_frame(i)` for every selected frame (or repeated pydicom `iter_pixels(...indices=[i])` for the pydicom backend).
-- **B - Selective decoding**: `ImageFileReader.read_frames(indices=batch)` over bounded chunks.
-- **C - Selective + bounded prefetch**: same chunks as B, decoded in one worker thread into a bounded queue while inference processes preceding frames.
+The `highdicom` backend evaluates the selective multi-frame API. The `pydicom` backend is provided for a decoding-only harness smoke test and is not evidence about highdicom performance.
 
-B and C are configured with `--batch-size`; C adds `--prefetch` frames. The API's `read_frames()` returns a list per batch, so there can be up to a batch of decoded frames in the producer **plus** the queue of prefetched frames. That is **not** a fixed constant memory bound independent of frame dimensions.
+The benchmark reports end-to-end wall time, phase timings, throughput, CPU time, sampled process RSS, Python allocation peaks, CUDA tensor memory, and decoded-frame hashes. Decode and inference phase timings can overlap; do not add them to estimate wall time.
 
-## Local-first VS Code -> Kaggle GPU -> GitHub (recommended workflow)
+## Evidence and scope
 
-**Keep `D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK` as the canonical local working directory.** Open it in VS Code and use Codex for local engineering and tests. Then authenticate Kaggle through the local terminal, deploy a generated notebook remotely, retrieve GPU results into `results/`, and create/push a **separate GitHub repository from the local working tree**. Do not make edits in Kaggle the canonical source or modify highdicom PR #520.
-
-The complete instructions are in [`docs/LOCAL_VSCODE_KAGGLE_WORKFLOW.md`](docs/LOCAL_VSCODE_KAGGLE_WORKFLOW.md). Paste [`CODEX_LOCAL_PROJECT_PROMPT.md`](CODEX_LOCAL_PROJECT_PROMPT.md) into Codex after extracting this project ZIP to Windows.
-
-```powershell
-# From VS Code PowerShell with the project's .venv activated:
-kaggle auth login
-python scripts/prepare_kaggle_kernel.py --owner YOUR_KAGGLE_USERNAME --profile pilot
-kaggle kernels push -p kaggle --accelerator NvidiaTeslaT4
-kaggle kernels status YOUR_KAGGLE_USERNAME/dicom-edge-inference-benchmark
-kaggle kernels output YOUR_KAGGLE_USERNAME/dicom-edge-inference-benchmark -p results/kaggle
-```
-
-The locally generated Kaggle notebook embeds a small, explicit allowlist of research source files and requires **no separate Kaggle Dataset upload or pre-existing GitHub repo**. Kaggle runs a remote GPU job, not CUDA on your Windows computer. The notebook deliberately uses one GPU, and all DICOM decoding remains CPU-side.
-
-Do not put Kaggle credentials in prompts or the project. Start Git history and create the remote GitHub repository **from VS Code only after validation**, private by default. See the workflow document for verified commands and checks.
-
-## Quick start - Windows / local CPU
-
-Use an existing Python 3.10+ interpreter and a **fresh virtual environment** when setting up a new checkout. From this repository root:
-
-```powershell
-# Confirm that this resolves to a real compatible Python installation.
-python --version
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[inference,monitoring,test]"
-# Install the tested highdicom feature branch into the SAME environment:
-python -m pip install -e "D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM"
-python -m dicom_edge_bench generate --out data/synthetic_native.dcm --frames 96 --rows 128 --columns 128
-python -m dicom_edge_bench run --dicom data/synthetic_native.dcm --backend highdicom --inference torch --device cpu --selection uniform:16 --batch-size 16 --prefetch 2 --repeats 3 --warmups 1 --out results/windows_cpu.json
-python -m pytest -q
-```
-
-The highdicom source checkout must be on branch `feat/issue-347-selective-multiframe-decoding`, with commit `d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e` or a later validated commit. The benchmark checks that `ImageFileReader.read_frames()` exists; it does **not** automatically check the branch's exact commit hash.
-
-### Pure pydicom / decoding-only smoke test
-
-No torch installation needed for this mode:
-
-```bash
-python -m pip install -e ".[test,monitoring]"
-python -m dicom_edge_bench generate --out data/smoke.dcm --frames 12 --rows 32 --columns 32
-python -m dicom_edge_bench run --dicom data/smoke.dcm --backend pydicom --inference none --device cpu --selection all --batch-size 5 --prefetch 2 --repeats 1 --warmups 0 --out results/pydicom_smoke.json
-```
-
-**The pydicom backend is a harness smoke test, not evidence about highdicom's performance.** To evaluate PR #520, use `--backend highdicom`.
-
-## CUDA / Jetson
-
-On a **supported Jetson + JetPack build**, install an NVIDIA-supported PyTorch build compatible with that JetPack release. Do **not** assume that a generic `pip install torch` provides CUDA on Jetson. See [NVIDIA's Jetson PyTorch compatibility guidance](https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform-release-notes/pytorch-jetson-rel.html).
-
-Once `python -c "import torch; assert torch.cuda.is_available()"` succeeds:
-
-```bash
-python -m pip install -e '.[monitoring,test]'
-# Install highdicom issue #347 branch separately, with dependencies.
-bash scripts/run_jetson.sh
-```
-
-CUDA is used **only for the downstream PyTorch inference stage**. All DICOM decoding remains CPU-side. The prototype does not implement CUDA codecs, zero-copy DICOM-to-CUDA transfer, GPU idle-time measurement, or TensorRT.
-
-On Raspberry Pi, use a supported CPU PyTorch installation and `bash scripts/run_raspberry_pi.sh`, or run `--inference none` if PyTorch is unavailable.
-
-## CLI reference
-
-```text
-python -m dicom_edge_bench generate --out data/image.dcm --encoding native|jpeg --frames 96 --rows 128 --columns 128 --seed 347
-python -m dicom_edge_bench run --dicom data/image.dcm --backend highdicom|pydicom --inference torch|none --device auto|cpu|cuda --selection uniform:16 --batch-size 16 --prefetch 2 --repeats 3 --warmups 1 --out results/run.json
-```
-
-Valid selections: `all`, `first:16`, `uniform:16`, `0:96:4`, `0,4,8,12`. Indices are zero-based; order and duplicates are preserved.
-
-## Output / interpretation
-
-The CLI writes **JSON** with metadata, summary medians, and per-run trials, alongside a flat **CSV** with timing and memory fields. Output stays under `results/`, which is gitignored. `data/` is also gitignored. The report hashes the decoded pixel content to verify that all modes retrieved **identical decoded frames**. It exits with an error when hashes differ.
-
-- `total_ms`: actual elapsed wall time, including decoding, inference, and scheduling.
-- `decode_work_ms` and `inference_work_ms`: phase timing; **can overlap in C**, so do not add them to estimate wall time.
-- `cpu_core_equivalent_percent`: total process CPU time divided by wall time; multicore workloads may exceed 100%.
-- `python_alloc_peak_mib`: `tracemalloc` Python allocation peak, **not** total RAM.
-- `sampled_process_rss_peak_mib`: `psutil`-sampled RSS (if installed), **not** a guaranteed true peak.
-- `torch_gpu_tensor_peak_mib`: max PyTorch-allocated CUDA tensor memory, **not** total GPU or shared-memory consumption.
-- `frames_per_second`: throughput of the **whole pipeline**, not just decoding.
-
-GPU occupancy, end-to-end energy, Jetson power draw, and GPU idle time are **not** reported by this first version. Jetson's `tegrastats` can produce an external raw log, but this prototype does not align it to trial boundaries or compute joules/frame. Do not infer energy efficiency from lower runtime alone.
-
-### Fairness limits
-
-- A/B/C process the same indices and run the same untrained model. B/C use identical chunk size.
-- Warmups are excluded; measurement order is randomized in a reproducible manner for each repeat.
-- `tracemalloc` can materially affect timings; keep settings consistent when comparing configurations.
-- CPU results, CUDA results and different datasets are **separate experimental strata**; do not conflate them.
-- JPEG compression varies decoding workload relative to native DICOM. Run both.
-- C may be slower if the CPU is saturated, the GIL dominates, or the inference step is too short to overlap meaningfully.
-- The highdicom fallback for small selections is preserved; don't claim that every selection is faster.
-
-See [Experiment Protocol](docs/EXPERIMENT_PROTOCOL.md) and [Platform Notes](docs/PLATFORM_NOTES.md).
-
-### Verified Kaggle pilot
-
-The pilot completed on 2026-11-17 in Kaggle's cloud environment using GPU 0, a Tesla T4 (CUDA 13.0, PyTorch 2.11.0+cu130). It used 96 synthetic 128x128-frame inputs, `uniform:16` selection, one warmup, two repeats, and the highdicom revision `d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e`. All 12 A/B/C summaries reported matching decoded-frame hashes and finite measurements.
+The first verified pilot ran on Kaggle using GPU 0, a Tesla T4, CUDA 13.0, and PyTorch 2.11.0. It used 96 synthetic 128x128 frames, `uniform:16` selection, one warmup, and two measured repeats for native and JPEG inputs on CPU and CUDA.
 
 | Encoding / device | A total ms | B total ms | C total ms | B vs A | C vs A |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -128,12 +27,107 @@ The pilot completed on 2026-11-17 in Kaggle's cloud environment using GPU 0, a T
 | JPEG / CPU | 36.941 | 32.229 | 36.806 | 12.76% faster | 0.37% faster |
 | JPEG / CUDA | 34.356 | 31.296 | 33.150 | 8.91% faster | 3.51% faster |
 
-These are measured Kaggle T4 reference results, not Jetson or Raspberry Pi results. GPU utilization, power, energy, and thermals were not measured; CPU decoding remains the bottleneck under this design. Raw outputs remain in the gitignored `results/` directory.
+These are measured Kaggle T4 reference results, not Jetson or Raspberry Pi results. DICOM decoding remains CPU-side. GPU utilization, power, energy, thermals, and CPU-to-GPU transfer time were not measured. The highdicom source used remotely was pinned to `d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e`.
 
-## Publication / upstream separation
+## Local setup on Windows
 
-This repository should live at `swapins/DICOM-Edge-Inference-Benchmark`. It is **independent research**, not a PR to highdicom. Keep generated DICOMs, clinical data, `.venv`, and benchmark outputs out of Git. A prepared GitHub CLI publishing script is provided at `scripts/publish_to_github.ps1`. Review it before execution.
+Run the commands below from the repository root in PowerShell. Use a real Python 3.10+ interpreter. If `python` resolves to a Microsoft Store alias, replace it with the absolute path to an installed interpreter.
+
+```powershell
+python --version
+python -m venv .venv
+& .\.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
+& .\.venv\Scripts\python.exe -m pip install -e ".[monitoring,test]"
+& .\.venv\Scripts\python.exe -m pip install -e "D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM"
+```
+
+The highdicom checkout should be on `feat/issue-347-selective-multiframe-decoding` at the validated commit above, or at a later validated revision. Do not reset, modify, or push that checkout from this project.
+
+Run the local test suite:
+
+```powershell
+& .\.venv\Scripts\python.exe -m pytest -q
+```
+
+Expected result for the current project snapshot: `17 passed, 2 skipped`.
+
+## CPU smoke benchmark
+
+This smoke test uses synthetic data and does not require CUDA or PyTorch:
+
+```powershell
+New-Item -ItemType Directory -Force data,results | Out-Null
+& .\.venv\Scripts\python.exe -m dicom_edge_bench generate `
+  --out data\smoke.dcm --frames 12 --rows 32 --columns 32
+& .\.venv\Scripts\python.exe -m dicom_edge_bench run `
+  --dicom data\smoke.dcm --backend highdicom --inference none `
+  --device cpu --selection uniform:8 --batch-size 5 --prefetch 2 `
+  --repeats 1 --warmups 0 --out results\local_smoke.json
+```
+
+Generated DICOM files and benchmark results are ignored by Git. Never use real patient data for this smoke test.
+
+## Kaggle GPU workflow
+
+Kaggle is used only for remote GPU execution. The local Windows checkout remains the source of truth.
+
+1. Authenticate locally without sharing credentials:
+
+   ```powershell
+   & .\.venv\Scripts\python.exe -m pip install --upgrade kaggle six
+   & .\.venv\Scripts\kaggle.exe auth login
+   ```
+
+2. Generate a private pilot notebook from the local source. Replace the placeholder with your public Kaggle username only:
+
+   ```powershell
+   & .\.venv\Scripts\python.exe scripts\prepare_kaggle_kernel.py `
+     --owner YOUR_KAGGLE_USERNAME --profile pilot
+   ```
+
+3. Upload and monitor the run:
+
+   ```powershell
+   & .\.venv\Scripts\kaggle.exe kernels push -p kaggle --accelerator NvidiaTeslaT4
+   & .\.venv\Scripts\kaggle.exe kernels status `
+     "YOUR_KAGGLE_USERNAME/dicom-edge-inference-benchmark"
+   & .\.venv\Scripts\kaggle.exe kernels logs `
+     "YOUR_KAGGLE_USERNAME/dicom-edge-inference-benchmark"
+   ```
+
+4. Download outputs only after Kaggle reports completion:
+
+   ```powershell
+   New-Item -ItemType Directory -Force results\kaggle | Out-Null
+   & .\.venv\Scripts\kaggle.exe kernels output `
+     "YOUR_KAGGLE_USERNAME/dicom-edge-inference-benchmark" -p results\kaggle
+   ```
+
+Never add `kaggle.json`, API keys, OAuth tokens, or access tokens to the repository. Never claim a GPU experiment succeeded based only on upload success.
+
+See [the local workflow](docs/LOCAL_VSCODE_KAGGLE_WORKFLOW.md), [the Kaggle protocol](docs/KAGGLE_PROTOCOL.md), and [the experiment protocol](docs/EXPERIMENT_PROTOCOL.md) for the full reproducibility checklist.
+
+## Jetson and Raspberry Pi follow-up
+
+The Kaggle pilot is a cloud reference experiment. It does not measure Jetson or Raspberry Pi performance. For a hardware claim, repeat the same matrix on the target device with a supported PyTorch build and record device-specific utilization, power, thermals, and timing data. The provided scripts are starting points:
+
+- Jetson: `scripts/run_jetson.sh`
+- Raspberry Pi: `scripts/run_raspberry_pi.sh`
+- Windows CPU: `scripts/run_windows_cpu.ps1`
+
+Do not install CUDA Toolkit or GPU PyTorch on Windows solely for the Kaggle workflow.
+
+## Repository hygiene
+
+The following remain outside version control by design:
+
+- `.venv/`, caches, and build metadata
+- generated DICOM files and benchmark results
+- Kaggle credential files and tokens
+- generated Kaggle notebook metadata and notebook outputs
+
+This project is maintained separately from highdicom PR #520. The repository is published privately at [swapins/DICOM-Edge-Inference-Benchmark](https://github.com/swapins/DICOM-Edge-Inference-Benchmark).
 
 ## License
 
-MIT. No clinical or device certification claims.
+MIT. See [LICENSE](LICENSE). No clinical, safety, or device-certification claims are made.
