@@ -78,6 +78,14 @@ At batch size 32, median end-to-end latency was:
 
 Across the full matrix, B outperformed A in 15 of 16 conditions; C outperformed A in 11 of 16 conditions and did not consistently outperform B. These are measured Kaggle T4-platform results, not Jetson or Raspberry Pi results. The complete validation record is in [docs/MEDI_AI_EXP_001_VALIDATION_RUN_2.md](docs/MEDI_AI_EXP_001_VALIDATION_RUN_2.md).
 
+## MEDI-AI-EXP-002 — Hardware-Aware Inference Profiling
+
+**Status:** In progress; implementation prepared, remote GPU profiling pending.
+
+EXP-002 extends the validated A/B/C benchmark with opt-in phase timing, CUDA event timing, queue enqueue/dequeue and blocking events, producer/consumer lifecycle events, process and PyTorch memory fields, and graceful NVIDIA/Jetson telemetry collectors. The controlled pilot is designed for native and JPEG inputs, CPU and CUDA inference, `uniform:32` selection, batch sizes 8/16/32, three warmups, ten measured repeats, and Method C prefetch depths 1/2/4. A and B are measured once per shared configuration; C is measured at each prefetch depth.
+
+The local implementation and tests are on [draft PR #2](https://github.com/swapins/DICOM-Edge-Inference-Benchmark/pull/2). Local validation currently reports 27 passed and 2 skipped tests. Kaggle notebook version 6 is the instrumentation smoke test and is currently queued; the full EXP-002 matrix has not been submitted, so this repository makes no EXP-002 GPU performance claim. Jetson execution remains **not executed — hardware required**. See the [EXP-002 requirements](docs/MEDI_AI_EXP_002_REQUIREMENTS.md), [protocol](docs/MEDI_AI_EXP_002_PROTOCOL.md), and [results record](docs/MEDI_AI_EXP_002_RESULTS.md).
+
 ## Relationship to MEDI AI+
 
 The experiment evaluates this component path:
