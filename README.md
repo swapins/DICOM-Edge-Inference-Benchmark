@@ -38,7 +38,7 @@ python --version
 python -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
 & .\.venv\Scripts\python.exe -m pip install -e ".[monitoring,test]"
-& .\.venv\Scripts\python.exe -m pip install -e "D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM"
+& .\.venv\Scripts\python.exe -m pip install "git+https://github.com/swapins/highdicom.git@d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e"
 ```
 
 The highdicom checkout should be on `feat/issue-347-selective-multiframe-decoding` at the validated commit above, or at a later validated revision. Do not reset, modify, or push that checkout from this project.

@@ -2,7 +2,7 @@
 
 ## Windows development (CPU and optionally NVIDIA discrete GPU)
 
-Install Python 3.10+, `pydicom`, a PyTorch build that matches the installed CUDA driver if CUDA is required, and the highdicom feature branch from `D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM` in editable mode. Verify `import highdicom; print(highdicom.__file__)` points to the expected clone.
+Install Python 3.10+, `pydicom`, a PyTorch build that matches the installed CUDA driver if CUDA is required, and the pinned highdicom feature commit. If using a local highdicom checkout, install it in editable mode from its actual path and verify `import highdicom; print(highdicom.__file__)` points to that checkout.
 
 Use PowerShell script `scripts/run_windows_cpu.ps1`. If on a CUDA-capable desktop, change `--device cpu` to `--device cuda` after `torch.cuda.is_available()` succeeds.
 

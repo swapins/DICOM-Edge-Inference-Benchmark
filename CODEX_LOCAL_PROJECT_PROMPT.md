@@ -4,15 +4,15 @@ You are acting as a senior Python research engineer in **VS Code on my Windows P
 
 ## Ownership and folders
 
-- Work ONLY in `D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK`.
-- This project is independent of `D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM` and upstream highdicom PR #520. Treat highdicom solely as a read-only editable package dependency; do not modify, push or rebase it.
+- Work only in the opened repository workspace.
+- This project is independent of any highdicom checkout and upstream highdicom PR #520. Treat highdicom solely as a read-only package dependency; do not modify, push or rebase it.
 - This folder contains a supplied scaffold with `src/dicom_edge_bench`, `tests`, `notebooks`, `scripts`, and `docs`. Preserve it and develop it in place. Do not clone highdicom again or create duplicate nested projects.
 - Main purpose: benchmark CPU DICOM decoding + PyTorch CUDA inference on Kaggle, using the locally authored sources.
 
 ## Phase 1: inspect and run locally
 
 1. Inspect git status, paths, README, `docs/LOCAL_VSCODE_KAGGLE_WORKFLOW.md`, experiment protocol, existing code, tests and `.gitignore`. Do not overwrite user work.
-2. Create a Python 3.11 `.venv` if missing and install the package plus test/monitoring dependencies. Use `pip install -e D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM` if available and verified; otherwise install the pinned contribution commit from `https://github.com/swapins/highdicom` and record the SHA.
+2. Create a compatible `.venv` if missing and install the package plus test/monitoring dependencies. Prefer the pinned contribution commit from `https://github.com/swapins/highdicom`; use a local checkout only when its path and commit have been explicitly verified.
 3. Run local `pytest -q` and a synthetic-DICOM CPU smoke test with `--inference none`, then optional CPU PyTorch if feasible. Fail on decoded-frame checksum mismatch.
 4. Fix only issues inside this research repository. Use seeded synthetic DICOM; do not download patient data.
 

@@ -1,8 +1,8 @@
 # Local Codex prompt — Phase 2: Validate on real DICOM libraries / edge hardware
 
-Copy the following into Codex after extracting this repository to `D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK`.
+Copy the following into Codex after opening this repository in your workspace.
 
-> Work in `D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK` as an **independent repository**. Do not change, commit to, or open PRs in the highdicom project. Existing `D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM` is a dependency to be installed in editable mode at the accepted feature branch. Treat upstream PR #520 as independent.
+> Work in the opened repository as an **independent project**. Do not change, commit to, or open PRs in the highdicom project. A highdicom checkout is an optional dependency; treat upstream PR #520 as independent.
 >
 > 1. Inspect scaffold, README, CLI, synthetic generator, three-mode runner, tests, and experiment protocol.
 > 2. Create `.venv`; install package with `[inference,monitoring,test]`, then install highdicom issue #347 branch in editable mode. Verify installed highdicom file path and SHA; do not alter its branch.

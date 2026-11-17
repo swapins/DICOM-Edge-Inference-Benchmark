@@ -4,30 +4,25 @@
 
 ## 1. Extract and open locally
 
-Extract the provided ZIP to:
+Extract or clone the repository anywhere convenient. Ensure `pyproject.toml` sits directly inside the opened repository folder, not one nested folder deeper. Open that folder in VS Code, then open **Terminal > New Terminal** and select PowerShell. Ensure Python 3.10+, Git, GitHub CLI (`gh`), and the Codex extension/CLI are available.
 
-`D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK`
-
-Ensure `pyproject.toml` sits directly inside that directory (not one nested folder deeper). Open **File > Open Folder** in VS Code. Open its built-in terminal with **Terminal > New Terminal** and select PowerShell. Ensure Python 3.11+, Git, GitHub CLI (`gh`), and Codex extension/CLI are available.
-
-> This research prototype is separate from `D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM`. Do not modify highdicom PR #520 in this project.
+> This research prototype is separate from any highdicom checkout. Do not modify highdicom PR #520 in this project.
 
 ## 2. Local environment (PowerShell)
 
 ```powershell
-cd D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK
-py -3.11 -m venv .venv
+python -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install --upgrade pip
 & .\.venv\Scripts\python.exe -m pip install -e ".[monitoring,test]" kaggle
-& .\.venv\Scripts\python.exe -m pip install -e D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM
+& .\.venv\Scripts\python.exe -m pip install "git+https://github.com/swapins/highdicom.git@d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e"
 & .\.venv\Scripts\python.exe -m pytest -q
 ```
 
 Check highdicom's current branch and SHA **without modifying it**:
 
 ```powershell
-git -C D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM status --short
-git -C D:\OPEN_SOURCE\HIGHDICOM\UPSTREAM rev-parse HEAD
+git -C <path-to-highdicom-checkout> status --short
+git -C <path-to-highdicom-checkout> rev-parse HEAD
 ```
 
 Expected API: `ImageFileReader.read_frames` exists. Expected tested SHA when scaffolded: `d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e` (a newer vetted commit may be used and documented). If the highdicom checkout is absent, Codex must use the pinned commit from `swapins/highdicom` rather than invent another implementation.
@@ -88,7 +83,6 @@ For the full research run, change `--profile pilot` to `--profile full`, regener
 Run in the VS Code terminal *after local tests and the Kaggle pilot are checked*. Keep it **private first**; change to public only deliberately.
 
 ```powershell
-cd D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK
 & .\.venv\Scripts\python.exe -m pytest -q
 gh auth login
 git init -b main

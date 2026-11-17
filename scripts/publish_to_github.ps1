@@ -1,9 +1,6 @@
 # Run from the local VS Code PowerShell terminal ONLY after inspecting sources.
 # Initial visibility is private. To publish publicly, change visibility deliberately.
 $ErrorActionPreference = 'Stop'
-if ((Get-Location).Path -notlike '*DICOM_EDGE_INFERENCE_BENCHMARK*') {
-    throw 'Run from D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK only.'
-}
 if (-not (Test-Path 'pyproject.toml')) { throw 'pyproject.toml not found.' }
 if (Test-Path '.git') {
     throw 'Git repository exists. Inspect current branch and remote manually; not overwriting.'
