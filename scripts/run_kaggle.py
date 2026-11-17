@@ -44,6 +44,16 @@ def experiment_plan(profile: str) -> dict:
             "warmups": 3,
             "repeats": 10,
         }
+    if profile == "validation2":
+        return {
+            "encodings": ["native", "jpeg"],
+            "selections": ["uniform:32"],
+            "devices": ["cpu", "cuda"],
+            "batch_sizes": [4, 8, 16, 32],
+            "warmups": 3,
+            "repeats": 10,
+            "mode_order_policy": "randomized per measured repeat by runner seed 347 + repeat index",
+        }
     raise ValueError(f"Unknown profile: {profile}")
 
 
@@ -135,48 +145,65 @@ def run(*, profile: str, output: Path, rows: int = 128, columns: int = 128,
     (output / "machine.json").write_text(json.dumps(machine, indent=2) + "\n")
 
     summary_rows = []
+    plan_batch_sizes = plan.get("batch_sizes", [batch_size])
     for encoding in plan["encodings"]:
         dicom_path = inputs_dir / f"synthetic_{encoding}.dcm"
         create_dicom(dicom_path, frames=frames, rows=rows, columns=columns,
                      encoding=encoding, seed=347)
         for device in plan["devices"]:
             for selection in plan["selections"]:
-                print(f"[START] {profile}: {encoding} / {device} / {selection}", flush=True)
-                result = benchmark(
-                    dicom_path,
-                    backend="highdicom",
-                    inference_type="torch",
-                    device=device,
-                    selection=selection,
-                    batch_size=batch_size,
-                    prefetch=prefetch,
-                    repeats=plan["repeats"],
-                    warmups=plan["warmups"],
-                    torch_threads=1,
-                )
-                if result["metadata"]["device"] != device:
-                    raise RuntimeError(f"Device mismatch; requested {device}")
-                if not result["metadata"]["source_is_synthetic"]:
-                    raise RuntimeError("Non-synthetic input detected; aborting")
-                if not result["metadata"]["identical_decoded_frames_across_all_trials"]:
-                    raise RuntimeError("A/B/C decoded-frame hashes mismatch; aborting")
-                label = f"{encoding}_{device}_{selection.replace(':', '-')}.json"
-                save_result(result, results_dir / label)
-                baseline = result["summary"]["A"]["median_total_ms"]
-                for mode, values in result["summary"].items():
-                    summary_rows.append({
-                        "profile": profile,
-                        "encoding": encoding,
-                        "device": device,
-                        "selection": selection,
-                        "frames_selected": result["metadata"]["frames_selected"],
-                        "mode": mode,
-                        "median_total_ms": values["median_total_ms"],
-                        "median_fps": values["median_fps"],
-                        "speedup_vs_A": round(baseline / values["median_total_ms"], 4),
-                        "hashes_match": True,
-                    })
-                print(f"[DONE] A={baseline:.2f} ms; B={result['summary']['B']['median_total_ms']:.2f} ms; C={result['summary']['C']['median_total_ms']:.2f} ms", flush=True)
+                for condition_batch_size in plan_batch_sizes:
+                    print(
+                        f"[START] {profile}: {encoding} / {device} / "
+                        f"{selection} / batch={condition_batch_size}",
+                        flush=True,
+                    )
+                    result = benchmark(
+                        dicom_path,
+                        backend="highdicom",
+                        inference_type="torch",
+                        device=device,
+                        selection=selection,
+                        batch_size=condition_batch_size,
+                        prefetch=prefetch,
+                        repeats=plan["repeats"],
+                        warmups=plan["warmups"],
+                        torch_threads=1,
+                    )
+                    if result["metadata"]["device"] != device:
+                        raise RuntimeError(f"Device mismatch; requested {device}")
+                    if not result["metadata"]["source_is_synthetic"]:
+                        raise RuntimeError("Non-synthetic input detected; aborting")
+                    if not result["metadata"]["identical_decoded_frames_across_all_trials"]:
+                        raise RuntimeError("A/B/C decoded-frame hashes mismatch; aborting")
+                    label = (
+                        f"{encoding}_{device}_{selection.replace(':', '-')}_"
+                        f"batch-{condition_batch_size}.json"
+                    )
+                    save_result(result, results_dir / label)
+                    baseline = result["summary"]["A"]["median_total_ms"]
+                    for mode, values in result["summary"].items():
+                        summary_rows.append({
+                            "profile": profile,
+                            "encoding": encoding,
+                            "device": device,
+                            "selection": selection,
+                            "batch_size": condition_batch_size,
+                            "prefetch": prefetch,
+                            "frames_selected": result["metadata"]["frames_selected"],
+                            "mode": mode,
+                            "median_total_ms": values["median_total_ms"],
+                            "median_fps": values["median_fps"],
+                            "speedup_vs_A": round(baseline / values["median_total_ms"], 4),
+                            "hashes_match": True,
+                        })
+                    print(
+                        f"[DONE] batch={condition_batch_size}; "
+                        f"A={baseline:.2f} ms; "
+                        f"B={result['summary']['B']['median_total_ms']:.2f} ms; "
+                        f"C={result['summary']['C']['median_total_ms']:.2f} ms",
+                        flush=True,
+                    )
 
     result_csv = output / "summary.csv"
     with result_csv.open("w", newline="", encoding="utf-8") as fh:
@@ -185,6 +212,11 @@ def run(*, profile: str, output: Path, rows: int = 128, columns: int = 128,
         writer.writerows(summary_rows)
     machine["experiment_count"] = len(summary_rows) // 3
     machine["result_rows"] = len(summary_rows)
+    machine["batch_sizes"] = plan_batch_sizes
+    machine["mode_order_policy"] = plan.get(
+        "mode_order_policy",
+        "randomized per measured repeat by runner seed 347 + repeat index",
+    )
     (output / "machine.json").write_text(json.dumps(machine, indent=2) + "\n")
     return {"output": str(output), "conditions": len(summary_rows) // 3,
             "summary_csv": str(result_csv), "gpu_device": machine["available_gpus"][0]["name"]}
@@ -192,7 +224,7 @@ def run(*, profile: str, output: Path, rows: int = 128, columns: int = 128,
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--profile", choices=["pilot", "full"], default="pilot")
+    p.add_argument("--profile", choices=["pilot", "full", "validation2"], default="pilot")
     p.add_argument("--out", type=Path, default=Path("/kaggle/working/dicom_edge_results"))
     p.add_argument("--frames", type=int, default=96)
     p.add_argument("--rows", type=int, default=128)

@@ -61,6 +61,23 @@ Selective decoding (B) reduced measured median end-to-end latency by 8.91-14.48%
 
 These results come from a small synthetic pilot. They do not establish universal speedup, clinical performance, medical-device functionality, or energy savings. GPU utilization, power, thermals, and CPU-to-GPU transfer latency were not measured.
 
+## Verified Kaggle Validation Run 2
+
+Validation Run 2 completed on 17 November 2026 on the same Kaggle GPU reference platform. It preserved the pilot results and retained the experiment identifier `MEDI-AI-EXP-001`. The run used native and JPEG synthetic DICOM inputs, CPU and CUDA inference, `uniform:32` selection, batch sizes 4/8/16/32, three warmups, ten measured repeats per method and condition, and randomized A/B/C order. Kaggle logs verified CUDA availability, an NVIDIA Tesla T4 on GPU 0, and highdicom commit `d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e` from the pinned PR #520 revision.
+
+The remote run reported 20 passed tests. The downloaded results archive passed an integrity check and contained all 16 conditions and 48 method summary rows. Each condition had 30 measured trial records, finite numeric values, and identical decoded-frame hashes across methods. Results are synthetic-only and are not committed to Git.
+
+At batch size 32, median end-to-end latency was:
+
+| Condition | A (ms) | B (ms) | C (ms) | B vs A |
+| --- | ---: | ---: | ---: | ---: |
+| Native CPU | 56.12 | 40.80 | 45.35 | 27.30% faster |
+| Native CUDA | 53.42 | 39.58 | 42.62 | 25.91% faster |
+| JPEG CPU | 69.27 | 61.46 | 63.65 | 11.27% faster |
+| JPEG CUDA | 63.27 | 56.09 | 58.93 | 11.35% faster |
+
+Across the full matrix, B outperformed A in 15 of 16 conditions; C outperformed A in 11 of 16 conditions and did not consistently outperform B. These are measured Kaggle T4-platform results, not Jetson or Raspberry Pi results. The complete validation record is in [docs/MEDI_AI_EXP_001_VALIDATION_RUN_2.md](docs/MEDI_AI_EXP_001_VALIDATION_RUN_2.md).
+
 ## Relationship to MEDI AI+
 
 The experiment evaluates this component path:
@@ -78,7 +95,7 @@ The experiment does not claim to implement or validate MEDI AI+ OS-level schedul
 
 ## Reproducibility and local setup
 
-Run these commands from the repository root in PowerShell. Use a real Python 3.10+ interpreter; if `python` resolves to a Microsoft Store alias, replace it with the absolute path to an installed interpreter.
+Run these commands from the repository root in PowerShell. The commands use repository-relative paths and do not depend on a particular local checkout directory. Use a Python 3.10+ interpreter; if `python` resolves to a Microsoft Store alias, use the interpreter path appropriate to your machine.
 
 ```powershell
 python --version
