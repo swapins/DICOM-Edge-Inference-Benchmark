@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "kaggleUsername",
+      "type": "promptString",
+      "description": "Enter your Kaggle username (never a token)",
+      "default": "YOUR_KAGGLE_USERNAME"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Research: Run local pytest",
+      "type": "shell",
+      "command": "& .\\.venv\\Scripts\\python.exe -m pytest -q",
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Kaggle: Authenticate via browser",
+      "type": "shell",
+      "command": "& .\\.venv\\Scripts\\kaggle.exe auth login",
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Kaggle: Generate GPU pilot from local source",
+      "type": "shell",
+      "command": "& .\\.venv\\Scripts\\python.exe scripts\\prepare_kaggle_kernel.py --owner ${input:kaggleUsername} --profile pilot",
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Kaggle: Push and run remote GPU",
+      "type": "shell",
+      "command": "& .\\.venv\\Scripts\\kaggle.exe kernels push -p kaggle --accelerator NvidiaTeslaT4",
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Kaggle: Check run status",
+      "type": "shell",
+      "command": "& .\\.venv\\Scripts\\kaggle.exe kernels status ${input:kaggleUsername}/dicom-edge-inference-benchmark",
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Kaggle: Fetch GPU experiment outputs",
+      "type": "shell",
+      "command": "New-Item -ItemType Directory -Force results\\kaggle | Out-Null; & .\\.venv\\Scripts\\kaggle.exe kernels output ${input:kaggleUsername}/dicom-edge-inference-benchmark -p results\\kaggle",
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    }
+  ]
+}

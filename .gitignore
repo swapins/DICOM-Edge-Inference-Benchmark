@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.DS_Store
+*.log
+results/*
+!results/.gitkeep
+data/*
+!data/.gitkeep
+.env
+*.dcm
+*.dicom
+*.DCM
+*.pth
+*.pt
+# Generated private Kaggle kernel. Rebuild from local source, never manually edit.
+kaggle/kernel-metadata.json
+kaggle/DICOM_Edge_Kaggle.ipynb
+# Credential files must never enter source control.
+kaggle.json
+access_token
+.env.*

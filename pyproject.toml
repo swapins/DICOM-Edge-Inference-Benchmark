@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dicom-edge-inference-benchmark"
+version = "0.1.0"
+description = "Reproducible selective DICOM decoding and edge inference benchmarks"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["numpy>=1.23", "pydicom>=3.0.1,<4"]
+
+[project.optional-dependencies]
+inference = ["torch>=2.0"]
+monitoring = ["psutil>=5.9"]
+test = ["pytest>=7", "pillow>=9"]
+
+[project.scripts]
+dicom-edge-bench = "dicom_edge_bench.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
