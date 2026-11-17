@@ -98,7 +98,7 @@ print('Bundle SHA256:', expected)
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--owner', required=True, help='Your Kaggle username/slug; NOT your email or token')
-    parser.add_argument('--profile', choices=('pilot', 'full'), default='pilot')
+    parser.add_argument('--profile', choices=('pilot', 'full', 'validation2'), default='pilot')
     parser.add_argument('--output-dir', type=Path, default=Path('kaggle'))
     parser.add_argument('--private', action='store_true', default=True)
     args = parser.parse_args(argv)

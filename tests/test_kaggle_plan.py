@@ -28,6 +28,16 @@ def test_kaggle_full_matches_experiment_protocol():
     assert plan['repeats'] >= 10
 
 
+def test_kaggle_validation2_covers_batch_sizes_and_repeat_depth():
+    plan = _load_runner().experiment_plan('validation2')
+    assert plan['encodings'] == ['native', 'jpeg']
+    assert plan['devices'] == ['cpu', 'cuda']
+    assert plan['selections'] == ['uniform:32']
+    assert plan['batch_sizes'] == [4, 8, 16, 32]
+    assert plan['warmups'] == 3
+    assert plan['repeats'] == 10
+
+
 def test_invalid_profile_rejected():
     with pytest.raises(ValueError, match='Unknown profile'):
         _load_runner().experiment_plan('other')
