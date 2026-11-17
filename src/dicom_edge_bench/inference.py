@@ -55,6 +55,14 @@ class Inference:
             return None
         return self.torch.cuda.max_memory_allocated() / (1024 * 1024)
 
+    def gpu_memory_mib(self) -> dict[str, float | None]:
+        if self.device != "cuda":
+            return {"allocated": None, "reserved": None}
+        return {
+            "allocated": self.torch.cuda.memory_allocated() / (1024 * 1024),
+            "reserved": self.torch.cuda.memory_reserved() / (1024 * 1024),
+        }
+
     def process(self, image: np.ndarray, *, trace: ProfileTrace | None = None,
                 frame_id: int | None = None) -> None:
         if self.model is None:
@@ -70,8 +78,9 @@ class Inference:
                 chw = np.moveaxis(image, -1, 0).copy()
             else:
                 raise ValueError(f"Unsupported image shape: {image.shape}")
-        with phase("host_to_device", **phase_fields):
+        with phase("batch_preparation", **phase_fields):
             inp = torch.from_numpy(np.ascontiguousarray(chw)).unsqueeze(0)
+        with phase("host_to_device", **phase_fields):
             inp = inp.to(dtype=torch.float32).mul_(1.0 / 255.0).to(self.device)
         cuda_start = cuda_end = None
         if trace is not None and trace.detailed_torch and self.device == "cuda":

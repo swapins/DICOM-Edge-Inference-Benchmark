@@ -88,6 +88,7 @@ def _prefetched_frames(path: Path, indices: list[int], backend: str,
         blocked_ns = 0
         record("producer_enqueue_start", frame_id=frame_id)
         while not cancelled.is_set():
+            attempt_start = time.perf_counter_ns()
             try:
                 slots.put(value, timeout=0.1)
                 elapsed_ns = time.perf_counter_ns() - start
@@ -99,9 +100,10 @@ def _prefetched_frames(path: Path, indices: list[int], backend: str,
                        blocked_ns=blocked_ns)
                 return
             except queue.Full:
-                full_start = time.perf_counter_ns()
+                blocked_ns += time.perf_counter_ns() - attempt_start
                 record("producer_queue_full", frame_id=frame_id,
                        queue_size=slots.qsize())
+                full_start = time.perf_counter_ns()
                 while slots.full() and not cancelled.is_set():
                     time.sleep(0.001)
                 blocked_ns += time.perf_counter_ns() - full_start
@@ -171,6 +173,7 @@ def _trial(path: Path, indices: list[int], backend: str, inference: Inference,
            trace: ProfileTrace | None = None,
            telemetry: TelemetryCollector | None = None) -> dict[str, Any]:
     inference.synchronize()
+    gpu_memory_before = inference.gpu_memory_mib()
     inference.reset_gpu_peak()
     if trace is not None:
         trace.timeline.record("pipeline_start", mode=mode)
@@ -207,6 +210,18 @@ def _trial(path: Path, indices: list[int], backend: str, inference: Inference,
         "torch_gpu_tensor_peak_mib": (
             round(inference.gpu_peak_mib(), 3)
             if inference.gpu_peak_mib() is not None else None
+        ),
+        "torch_gpu_allocated_mib": (
+            round(inference.gpu_memory_mib()["allocated"], 3)
+            if inference.gpu_memory_mib()["allocated"] is not None else None
+        ),
+        "torch_gpu_reserved_mib": (
+            round(inference.gpu_memory_mib()["reserved"], 3)
+            if inference.gpu_memory_mib()["reserved"] is not None else None
+        ),
+        "torch_gpu_baseline_allocated_mib": (
+            round(gpu_memory_before["allocated"], 3)
+            if gpu_memory_before["allocated"] is not None else None
         ),
         "decoded_sha256": signature,
         "frames_per_second": round(len(indices) / m.wall_seconds, 3),
