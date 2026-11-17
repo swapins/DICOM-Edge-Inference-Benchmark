@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: "DICOM Edge Inference Benchmark"
+message: "If you use this research software, please cite MEDI-AI-EXP-001."
+type: software
+authors:
+  - family-names: "Vidya"
+    given-names: "Swapin"
+    affiliation: "Provenant AI Labs Pte. Ltd., Singapore"
+version: "0.1.0"
+date-released: "2026-11-17"
+license: "MIT"
+repository-code: "https://github.com/swapins/DICOM-Edge-Inference-Benchmark"
