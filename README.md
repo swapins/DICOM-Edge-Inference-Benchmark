@@ -63,9 +63,9 @@ These results come from a small synthetic pilot. They do not establish universal
 
 ## Verified Kaggle Validation Run 2
 
-Validation Run 2 completed on 17 November 2026 on the same Kaggle GPU reference platform. It preserved the pilot results and retained the experiment identifier `MEDI-AI-EXP-001`. The run used native and JPEG synthetic DICOM inputs, CPU and CUDA inference, `uniform:32` selection, batch sizes 4/8/16/32, three warmups, ten measured repeats per method and condition, and randomized A/B/C order. Kaggle logs verified CUDA availability, an NVIDIA Tesla T4 on GPU 0, and highdicom commit `d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e` from the pinned PR #520 revision.
+Validation Run 2 completed on 17 November 2026 on the same Kaggle GPU reference platform. It preserved the pilot results and retained the experiment identifier `MEDI-AI-EXP-001`. The run used native and JPEG synthetic DICOM inputs, CPU and CUDA inference, `uniform:32` selection, batch sizes 4/8/16/32, three warmups, ten measured repeats per method and condition, and randomized A/B/C order. This was Kaggle notebook version 5. Kaggle logs verified CUDA availability, an NVIDIA Tesla T4 on GPU 0, and highdicom commit `d42f664006a9cd2194eda0bf5b1cf0fa2fb0188e` from the pinned PR #520 revision.
 
-The remote run reported 20 passed tests. The downloaded results archive passed an integrity check and contained all 16 conditions and 48 method summary rows. Each condition had 30 measured trial records, finite numeric values, and identical decoded-frame hashes across methods. Results are synthetic-only and are not committed to Git.
+The remote run reported 20 passed tests. The downloaded results archive passed an integrity check and contained all 16 conditions and 48 method summary rows. Each condition had 30 measured trial records, finite numeric values, and identical decoded-frame hashes across methods. Its SHA-256 is `825edaf29934c3b0b4efb15400ed595f45b26c22c2ac1c5fdfc57d3e615e8c39`. Results are synthetic-only and are not committed to Git.
 
 At batch size 32, median end-to-end latency was:
 

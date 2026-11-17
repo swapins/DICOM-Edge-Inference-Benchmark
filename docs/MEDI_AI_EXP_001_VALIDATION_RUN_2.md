@@ -3,7 +3,9 @@
 **Status:** completed and locally retrieved
 **Execution date:** 17 November 2026
 **Remote platform:** Kaggle GPU notebook, single NVIDIA Tesla T4 (GPU 0)
-**Kaggle notebook:** <https://www.kaggle.com/code/stellaraisg/dicom-edge-inference-benchmark>
+**Kaggle notebook:** <https://www.kaggle.com/code/stellaraisg/dicom-edge-inference-benchmark> (version 5)
+
+**Validated results archive SHA-256:** `825edaf29934c3b0b4efb15400ed595f45b26c22c2ac1c5fdfc57d3e615e8c39`
 
 This validation run preserves the original pilot results. It does not change the experiment identifier and does not modify highdicom PR #520.
 
@@ -36,6 +38,14 @@ The downloaded `DICOM_Edge_Kaggle_Results.zip` passed an archive integrity check
 - `machine.json`, `summary.csv`, and the result archive.
 
 Every condition reported identical decoded-frame hashes across all methods and trials. All numeric measurement fields were finite. The archive contains synthetic data only; no patient-identifying values, Kaggle credentials, GitHub tokens, or private-key material were found during the output audit.
+
+## Per-condition statistical summary
+
+The sanitized [statistical summary CSV](MEDI_AI_EXP_001_VALIDATION_RUN_2_stats.csv) is derived only from the retained trial JSON records. It contains no DICOM payloads, patient data, credentials, or generated raw measurements beyond aggregate timing statistics.
+
+For each method and condition, `median_ms` is the median of the 10 measured `total_ms` values, `mad_ms` is the median absolute deviation around that median, and `min_ms`/`max_ms` are the observed range. The `bootstrap_ci95_*` columns are percentile intervals from 20,000 bootstrap resamples of 10 observations with replacement. Each series uses Python's `random.Random` initialized with seed `20261117`; the interval is the empirical 2.5th through 97.5th percentile of the bootstrap medians. These are exploratory intervals from one Kaggle execution environment and ten repeats, not population-level confidence statements or evidence of cross-machine generalization.
+
+The underlying archive and CSV verify 10 trials each for A, B, and C in all 16 conditions (480 measured method records total). The only condition where B's median was higher than A's was JPEG/CUDA/batch 8: 64.841 ms versus 64.159 ms.
 
 ## Measured end-to-end latency
 
@@ -98,4 +108,4 @@ In this run, Method C did not consistently improve on Method B. At batch 32 it r
 
 ## Reproduction record
 
-The source changes for this run are prepared on the local branch `validation/medi-ai-exp-001-run-2`. The original pilot output directory remains separate. No GitHub push or merge has been performed pending review.
+The source changes for this run are prepared on the local branch `validation/medi-ai-exp-001-run-2`, which has been pushed to GitHub. Draft PR [#1](https://github.com/swapins/DICOM-Edge-Inference-Benchmark/pull/1) targets `main` and remains unmerged. The original pilot output directory remains separate. The generated validation archive remains under the ignored `results/kaggle_validation2` path.
