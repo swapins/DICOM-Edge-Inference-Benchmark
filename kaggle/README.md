@@ -1,6 +1,6 @@
 # Generated Kaggle kernel
 
-This folder contains generated metadata and a self-contained notebook made from the **local** working tree.
+This folder contains the source README plus generated metadata and a self-contained notebook made from the **local** working tree. The generated notebook and metadata are intentionally ignored by Git.
 
 Run from the repository root:
 
@@ -12,4 +12,4 @@ kaggle kernels output YOUR_KAGGLE_USERNAME/dicom-edge-inference-benchmark -p res
 ```
 
 Do not add your token to the project. Log in locally via `kaggle auth login`.
-Generated notebook and metadata are ignored by Git; this README is versioned.
+Use the public Kaggle username only; never place API keys, OAuth tokens, or `kaggle.json` in this directory.

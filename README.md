@@ -10,13 +10,13 @@ Does selective CPU-side decoding, with and without bounded prefetch, improve end
 
 The benchmark compares three implementations using the **same frame indices, decoding backend, batch size, and model**:
 
-- **A — Repeated access**: `ImageFileReader.read_frame(i)` for every selected frame (or repeated pydicom `iter_pixels(...indices=[i])` for the pydicom backend).
-- **B — Selective decoding**: `ImageFileReader.read_frames(indices=batch)` over bounded chunks.
-- **C — Selective + bounded prefetch**: same chunks as B, decoded in one worker thread into a bounded queue while inference processes preceding frames.
+- **A - Repeated access**: `ImageFileReader.read_frame(i)` for every selected frame (or repeated pydicom `iter_pixels(...indices=[i])` for the pydicom backend).
+- **B - Selective decoding**: `ImageFileReader.read_frames(indices=batch)` over bounded chunks.
+- **C - Selective + bounded prefetch**: same chunks as B, decoded in one worker thread into a bounded queue while inference processes preceding frames.
 
 B and C are configured with `--batch-size`; C adds `--prefetch` frames. The API's `read_frames()` returns a list per batch, so there can be up to a batch of decoded frames in the producer **plus** the queue of prefetched frames. That is **not** a fixed constant memory bound independent of frame dimensions.
 
-## Local-first VS Code → Kaggle GPU → GitHub (recommended workflow)
+## Local-first VS Code -> Kaggle GPU -> GitHub (recommended workflow)
 
 **Keep `D:\OPEN_SOURCE\DICOM_EDGE_INFERENCE_BENCHMARK` as the canonical local working directory.** Open it in VS Code and use Codex for local engineering and tests. Then authenticate Kaggle through the local terminal, deploy a generated notebook remotely, retrieve GPU results into `results/`, and create/push a **separate GitHub repository from the local working tree**. Do not make edits in Kaggle the canonical source or modify highdicom PR #520.
 
@@ -35,12 +35,14 @@ The locally generated Kaggle notebook embeds a small, explicit allowlist of rese
 
 Do not put Kaggle credentials in prompts or the project. Start Git history and create the remote GitHub repository **from VS Code only after validation**, private by default. See the workflow document for verified commands and checks.
 
-## Quick start — Windows / local CPU
+## Quick start - Windows / local CPU
 
-Use Python 3.10+ and a **fresh virtual environment**. From this repository root:
+Use an existing Python 3.10+ interpreter and a **fresh virtual environment** when setting up a new checkout. From this repository root:
 
 ```powershell
-py -3 -m venv .venv
+# Confirm that this resolves to a real compatible Python installation.
+python --version
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[inference,monitoring,test]"
 # Install the tested highdicom feature branch into the SAME environment:
